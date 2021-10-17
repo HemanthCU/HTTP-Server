@@ -21,33 +21,56 @@ int open_listenfd(int port);
 void echo(int connfd);
 void *thread(void *vargp);
 
-int main(int argc, char **argv) 
-{
+int main(int argc, char **argv) {
     int listenfd, *connfdp, port, clientlen=sizeof(struct sockaddr_in);
     struct sockaddr_in clientaddr;
     pthread_t tid; 
 
     if (argc != 2) {
-	fprintf(stderr, "usage: %s <port>\n", argv[0]);
-	exit(0);
+        fprintf(stderr, "usage: %s <port>\n", argv[0]);
+        exit(0);
     }
     port = atoi(argv[1]);
 
     listenfd = open_listenfd(port);
     while (1) {
-	connfdp = malloc(sizeof(int));
-	*connfdp = accept(listenfd, (struct sockaddr*)&clientaddr, &clientlen);
-	pthread_create(&tid, NULL, thread, connfdp);
+        connfdp = malloc(sizeof(int));
+        *connfdp = accept(listenfd, (struct sockaddr*)&clientaddr, &clientlen);
+        pthread_create(&tid, NULL, thread, connfdp);
     }
 }
 
 /* thread routine */
-void * thread(void * vargp) 
-{  
+void * thread(void * vargp) {  
     int connfd = *((int *)vargp);
-    pthread_detach(pthread_self()); 
+    pthread_detach(pthread_self());
     free(vargp);
-    echo(connfd);
+    // Process the header to get details of request
+    size_t n; 
+    char buf[MAXLINE];
+    char* context = NULL;
+    char comd[10];
+    char tgtpath[1000];
+    char httpver[10];
+    n = read(connfd, buf, MAXLINE);
+    comd = strtok_r(buf, " ", &context);
+    tgtpath = strtok_r(NULL, " ", &context);
+    httpver = strtok_r(NULL, " ", &context);
+
+    // Choose what to perform based on comd
+    if (strcmp(comd, "GET") == 0) {
+
+    } else if (strcmp(comd, "PUT") == 0) {
+
+    } else if (strcmp(comd, "POST") == 0) {
+
+    } else if (strcmp(comd, "HEAD") == 0) {
+
+    } else {
+        
+    }
+
+    //echo(connfd);
     close(connfd);
     return NULL;
 }
@@ -55,8 +78,7 @@ void * thread(void * vargp)
 /*
  * echo - read and echo text lines until client closes connection
  */
-void echo(int connfd) 
-{
+void echo(int connfd) {
     size_t n; 
     char buf[MAXLINE]; 
     char httpmsg[]="HTTP/1.1 200 Document Follows\r\nContent-Type:text/html\r\nContent-Length:32\r\n\r\n<html><h1>Hello CSCI4273 Course!</h1>"; 
@@ -73,8 +95,7 @@ void echo(int connfd)
  * open_listenfd - open and return a listening socket on port
  * Returns -1 in case of failure 
  */
-int open_listenfd(int port) 
-{
+int open_listenfd(int port) {
     int listenfd, optval=1;
     struct sockaddr_in serveraddr;
   
