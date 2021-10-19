@@ -46,20 +46,33 @@ void * thread(void * vargp) {
     pthread_detach(pthread_self());
     free(vargp);
     // Process the header to get details of request
-    size_t n; 
+    size_t n;
+    bool keepalive = false;
     char buf[MAXLINE];
+    char resp[MAXLINE];
     char* context = NULL;
     char comd[10];
+    char host[20];
+    char temp[100]
     char tgtpath[1000];
     char httpver[10];
     n = read(connfd, buf, MAXLINE);
-    comd = strtok_r(buf, " ", &context);
-    tgtpath = strtok_r(NULL, " ", &context);
-    httpver = strtok_r(NULL, " ", &context);
+    comd = strtok_r(buf, " \t\r\n\v\f", &context);
+    tgtpath = strtok_r(NULL, " \t\r\n\v\f", &context);
+    httpver = strtok_r(NULL, " \t\r\n\v\f", &context);
+    host = strtok_r(NULL, " \t\r\n\v\f", &context);
+    host = strtok_r(NULL, " \t\r\n\v\f", &context);
 
+    if (strcmp(httpver, "HTTP/1.1") == 0) {
+        temp = strtok_r(NULL, " \t\r\n\v\f", &context);
+        if (temp != NULL)
+            keepalive = true;
+    }
+
+    printf("comd=%s tgtpath=%s httpver=%s host=%s \n", comd, tgtpath, httpver, host);
     // Choose what to perform based on comd
     if (strcmp(comd, "GET") == 0) {
-
+        
     } else if (strcmp(comd, "PUT") == 0) {
 
     } else if (strcmp(comd, "POST") == 0) {
