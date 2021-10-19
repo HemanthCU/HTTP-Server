@@ -47,15 +47,15 @@ void * thread(void * vargp) {
     free(vargp);
     // Process the header to get details of request
     size_t n;
-    bool keepalive = false;
+    int keepalive = 0;
     char buf[MAXLINE];
     char resp[MAXLINE];
     char* context = NULL;
-    char comd[10];
-    char host[20];
-    char temp[100]
-    char tgtpath[1000];
-    char httpver[10];
+    char *comd;
+    char *host;
+    char *temp;
+    char *tgtpath;
+    char *httpver;
     n = read(connfd, buf, MAXLINE);
     comd = strtok_r(buf, " \t\r\n\v\f", &context);
     tgtpath = strtok_r(NULL, " \t\r\n\v\f", &context);
@@ -65,11 +65,14 @@ void * thread(void * vargp) {
 
     if (strcmp(httpver, "HTTP/1.1") == 0) {
         temp = strtok_r(NULL, " \t\r\n\v\f", &context);
-        if (temp != NULL)
-            keepalive = true;
+        if (temp != NULL) {
+            temp = strtok_r(NULL, " \t\r\n\v\f", &context);
+            if (strcmp(temp, "Keep-alive") == 0)
+                keepalive = 1;
+        }
     }
 
-    printf("comd=%s tgtpath=%s httpver=%s host=%s \n", comd, tgtpath, httpver, host);
+    printf("comd=%s tgtpath=%s httpver=%s host=%s keepalive=%d \n", comd, tgtpath, httpver, host, keepalive);
     // Choose what to perform based on comd
     if (strcmp(comd, "GET") == 0) {
         
