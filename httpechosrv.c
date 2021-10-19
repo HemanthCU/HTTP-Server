@@ -16,7 +16,7 @@
 #define MAXLINE  8192  /* max text line length */
 #define MAXBUF   8192  /* max I/O buffer size */
 #define LISTENQ  1024  /* second argument to listen() */
-#define MAXREAD  8000
+#define MAXREAD  20000
 
 int open_listenfd(int port);
 void echo(int connfd);
@@ -52,8 +52,8 @@ void * thread(void * vargp) {
     int msgsz;
     char buf[MAXLINE];
     char resp[MAXLINE];
-    char msg[MAXREAD + 1];
-    char* context = NULL;
+    char *msg;
+    char *context = NULL;
     char *comd;
     char *host;
     char *temp = NULL;
@@ -64,6 +64,7 @@ void * thread(void * vargp) {
     n = read(connfd, buf, MAXLINE);
     comd = strtok_r(buf, " \t\r\n\v\f", &context);
     tgtpath = strtok_r(NULL, " \t\r\n\v\f", &context);
+    sprintf(tgtpath, "/www%s", tgtpath);
     httpver = strtok_r(NULL, " \t\r\n\v\f", &context);
     host = strtok_r(NULL, " \t\r\n\v\f", &context);
     host = strtok_r(NULL, " \t\r\n\v\f", &context);
@@ -82,11 +83,19 @@ void * thread(void * vargp) {
     // Choose what to perform based on comd
     if (strcmp(comd, "GET") == 0) {
         if (keepalive) {
-            
-        } else {
-            /*fp = fopen(filename, "r");
+            fp = fopen(tgtpath, "r");
             fseek(fp, 0, SEEK_SET);
-            msgsz = fread(msg, MAXREAD, 1, fp);*/
+            msgsz = fread(msg, MAXREAD, 1, fp);
+            sprintf(resp, "%s 200 Document Follows\r\nContent-Type:text/html\r\nContent-Length:%d\r\n\r\n%s", httpver, msgsz, msg);
+            write(connfd, resp, strlen(resp));
+            fclose(fp);
+        } else {
+            fp = fopen(tgtpath, "r");
+            fseek(fp, 0, SEEK_SET);
+            msgsz = fread(msg, MAXREAD, 1, fp);
+            sprintf(resp, "%s 200 Document Follows\r\nContent-Type:text/html\r\nContent-Length:%d\r\n\r\n%s", httpver, msgsz, msg);
+            write(connfd, resp, strlen(resp));
+            fclose(fp);
         }
     } else if (strcmp(comd, "PUT") == 0) {
 
