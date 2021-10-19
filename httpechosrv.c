@@ -51,20 +51,21 @@ void * thread(void * vargp) {
     int keepalive = 0;
     int msgsz;
     char buf[MAXLINE];
-    char resp[MAXLINE];
-    char *msg;
+    char *resp = (char*) malloc (MAXREAD*sizeof(char));
+    char msg[MAXREAD + 1];
     char *context = NULL;
     char *comd;
     char *host;
     char *temp = NULL;
     char *tgtpath;
+    char *tgtpath1 = (char*) malloc (100*sizeof(char));
     char *httpver;
     char c;
     FILE *fp;
     n = read(connfd, buf, MAXLINE);
     comd = strtok_r(buf, " \t\r\n\v\f", &context);
     tgtpath = strtok_r(NULL, " \t\r\n\v\f", &context);
-    sprintf(tgtpath, "/www%s", tgtpath);
+    sprintf(tgtpath1, "./www%s", tgtpath);
     httpver = strtok_r(NULL, " \t\r\n\v\f", &context);
     host = strtok_r(NULL, " \t\r\n\v\f", &context);
     host = strtok_r(NULL, " \t\r\n\v\f", &context);
@@ -79,18 +80,18 @@ void * thread(void * vargp) {
         }
     }
 
-    printf("comd=%s tgtpath=%s httpver=%s host=%s keepalive=%d \n", comd, tgtpath, httpver, host, keepalive);
+    printf("comd=%s tgtpath=%s httpver=%s host=%s keepalive=%d \n", comd, tgtpath1, httpver, host, keepalive);
     // Choose what to perform based on comd
     if (strcmp(comd, "GET") == 0) {
         if (keepalive) {
-            fp = fopen(tgtpath, "r");
+            fp = fopen(tgtpath1, "r");
             fseek(fp, 0, SEEK_SET);
             msgsz = fread(msg, MAXREAD, 1, fp);
             sprintf(resp, "%s 200 Document Follows\r\nContent-Type:text/html\r\nContent-Length:%d\r\n\r\n%s", httpver, msgsz, msg);
             write(connfd, resp, strlen(resp));
             fclose(fp);
         } else {
-            fp = fopen(tgtpath, "r");
+            fp = fopen(tgtpath1, "r");
             fseek(fp, 0, SEEK_SET);
             msgsz = fread(msg, MAXREAD, 1, fp);
             sprintf(resp, "%s 200 Document Follows\r\nContent-Type:text/html\r\nContent-Length:%d\r\n\r\n%s", httpver, msgsz, msg);
