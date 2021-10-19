@@ -53,9 +53,10 @@ void * thread(void * vargp) {
     char* context = NULL;
     char *comd;
     char *host;
-    char *temp;
+    char *temp = NULL;
     char *tgtpath;
     char *httpver;
+    char c;
     n = read(connfd, buf, MAXLINE);
     comd = strtok_r(buf, " \t\r\n\v\f", &context);
     tgtpath = strtok_r(NULL, " \t\r\n\v\f", &context);
@@ -64,8 +65,9 @@ void * thread(void * vargp) {
     host = strtok_r(NULL, " \t\r\n\v\f", &context);
 
     if (strcmp(httpver, "HTTP/1.1") == 0) {
-        temp = strtok_r(NULL, " \t\r\n\v\f", &context);
-        if (temp != NULL) {
+        c = context[1];
+        if (c != '\r') {
+            temp = strtok_r(NULL, " \t\r\n\v\f", &context);
             temp = strtok_r(NULL, " \t\r\n\v\f", &context);
             if (strcmp(temp, "Keep-alive") == 0)
                 keepalive = 1;
