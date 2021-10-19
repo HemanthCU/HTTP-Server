@@ -16,6 +16,7 @@
 #define MAXLINE  8192  /* max text line length */
 #define MAXBUF   8192  /* max I/O buffer size */
 #define LISTENQ  1024  /* second argument to listen() */
+#define MAXREAD  8000
 
 int open_listenfd(int port);
 void echo(int connfd);
@@ -48,8 +49,10 @@ void * thread(void * vargp) {
     // Process the header to get details of request
     size_t n;
     int keepalive = 0;
+    int msgsz;
     char buf[MAXLINE];
     char resp[MAXLINE];
+    char msg[MAXREAD + 1];
     char* context = NULL;
     char *comd;
     char *host;
@@ -57,6 +60,7 @@ void * thread(void * vargp) {
     char *tgtpath;
     char *httpver;
     char c;
+    FILE *fp;
     n = read(connfd, buf, MAXLINE);
     comd = strtok_r(buf, " \t\r\n\v\f", &context);
     tgtpath = strtok_r(NULL, " \t\r\n\v\f", &context);
@@ -77,7 +81,13 @@ void * thread(void * vargp) {
     printf("comd=%s tgtpath=%s httpver=%s host=%s keepalive=%d \n", comd, tgtpath, httpver, host, keepalive);
     // Choose what to perform based on comd
     if (strcmp(comd, "GET") == 0) {
-        
+        if (keepalive) {
+            
+        } else {
+            /*fp = fopen(filename, "r");
+            fseek(fp, 0, SEEK_SET);
+            msgsz = fread(msg, MAXREAD, 1, fp);*/
+        }
     } else if (strcmp(comd, "PUT") == 0) {
 
     } else if (strcmp(comd, "POST") == 0) {
