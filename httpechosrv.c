@@ -48,8 +48,12 @@ char* getContentType(char *tgtpath) {
     char *temp3 = NULL;
     char *temp4 = (char*) malloc (100*sizeof(char));
     strcpy(temp1, tgtpath);
-    temp2 = strtok_r(temp1, ".", &temp3);
-    temp2 = strtok_r(NULL, ".", &temp3);
+    temp3 = strrchr(temp1, ".");
+    if (temp3 == NULL) {
+        printf("ERROR in file type\n");
+        return NULL;
+    }
+    temp2 = temp3 + 1;
     if (strcmp(temp2, "html") == 0) {
         strcpy(temp4, "text/html");
     } else if (strcmp(temp2, "txt") == 0) {
