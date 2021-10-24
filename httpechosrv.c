@@ -48,7 +48,7 @@ char* getContentType(char *tgtpath) {
     char *temp3 = NULL;
     char *temp4 = (char*) malloc (100*sizeof(char));
     strcpy(temp1, tgtpath);
-    temp3 = strrchr(temp1, ".");
+    temp3 = strrchr(temp1, '.');
     if (temp3 == NULL) {
         printf("ERROR in file type\n");
         return NULL;
