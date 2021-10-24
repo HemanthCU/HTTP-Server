@@ -49,7 +49,7 @@ char* getContentType(char *tgtpath) {
     char *temp4 = (char*) malloc (100*sizeof(char));
     strcpy(temp1, tgtpath);
     temp2 = strtok_r(temp1, ".", &temp3);
-    temp2 = strtok_r(temp1, ".", &temp3);
+    temp2 = strtok_r(NULL, ".", &temp3);
     if (strcmp(temp2, "html") == 0) {
         strcpy(temp4, "text/html");
     } else if (strcmp(temp2, "txt") == 0) {
@@ -66,6 +66,7 @@ char* getContentType(char *tgtpath) {
         strcpy(temp4, "application/javascript");
     } else {
         printf("ERROR in file type\n");
+        temp4 = NULL;
     }
 
     return temp4;
@@ -113,19 +114,22 @@ void * thread(void * vargp) {
     contType = getContentType(tgtpath1);
     printf("comd=%s tgtpath=%s httpver=%s host=%s keepalive=%d \n", comd, tgtpath1, httpver, host, keepalive);
     // Choose what to perform based on comd
-    if (strcmp(comd, "GET") == 0) {
+    if (contType == NULL) {
+        // TODO: Need to return webpage with error
+        printf("ERROR in requested data type\n");
+    } else if (strcmp(comd, "GET") == 0) {
         if (keepalive) {
             fp = fopen(tgtpath1, "r");
             fseek(fp, 0, SEEK_SET);
             msgsz = fread(msg, MAXREAD, 1, fp);
-            sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, msgsz, msg);
+            sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, (int)strlen(msg), msg);
             write(connfd, resp, strlen(resp));
             fclose(fp);
         } else {
             fp = fopen(tgtpath1, "r");
             fseek(fp, 0, SEEK_SET);
             msgsz = fread(msg, MAXREAD, 1, fp);
-            sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, msgsz, msg);
+            sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, (int)strlen(msg), msg);
             write(connfd, resp, strlen(resp));
             fclose(fp);
         }
@@ -136,7 +140,7 @@ void * thread(void * vargp) {
     } else if (strcmp(comd, "HEAD") == 0) {
 
     } else {
-        
+        // TODO: Need to return webpage with error
     }
 
     //echo(connfd);
