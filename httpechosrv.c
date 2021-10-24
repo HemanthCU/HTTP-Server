@@ -21,6 +21,7 @@
 int open_listenfd(int port);
 void echo(int connfd);
 void *thread(void *vargp);
+char* getContentType(char *tgtpath);
 
 int main(int argc, char **argv) {
     int listenfd, *connfdp, port, clientlen=sizeof(struct sockaddr_in);
@@ -39,6 +40,35 @@ int main(int argc, char **argv) {
         *connfdp = accept(listenfd, (struct sockaddr*)&clientaddr, &clientlen);
         pthread_create(&tid, NULL, thread, connfdp);
     }
+}
+
+char* getContentType(char *tgtpath) {
+    char *temp1 = (char*) malloc (100*sizeof(char));
+    char *temp2 = (char*) malloc (100*sizeof(char));
+    char *temp3 = NULL;
+    char *temp4 = (char*) malloc (100*sizeof(char));
+    strcpy(temp1, tgtpath);
+    temp2 = strtok_r(temp1, ".", &temp3);
+    temp2 = strtok_r(temp1, ".", &temp3);
+    if (strcmp(temp2, "html") == 0) {
+        strcpy(temp4, "text/html");
+    } else if (strcmp(temp2, "txt") == 0) {
+        strcpy(temp4, "text/plain");
+    } else if (strcmp(temp2, "png") == 0) {
+        strcpy(temp4, "image/png");
+    } else if (strcmp(temp2, "gif") == 0) {
+        strcpy(temp4, "image/gif");
+    } else if (strcmp(temp2, "jpg") == 0) {
+        strcpy(temp4, "image/jpg");
+    } else if (strcmp(temp2, "css") == 0) {
+        strcpy(temp4, "text/css");
+    } else if (strcmp(temp2, "js") == 0) {
+        strcpy(temp4, "application/javascript");
+    } else {
+        printf("ERROR in file type\n");
+    }
+
+    return temp4;
 }
 
 /* thread routine */
@@ -60,6 +90,7 @@ void * thread(void * vargp) {
     char *tgtpath;
     char *tgtpath1 = (char*) malloc (100*sizeof(char));
     char *httpver;
+    char *contType;
     char c;
     FILE *fp;
     n = read(connfd, buf, MAXLINE);
@@ -79,7 +110,7 @@ void * thread(void * vargp) {
                 keepalive = 1;
         }
     }
-
+    contType = getContentType(tgtpath1);
     printf("comd=%s tgtpath=%s httpver=%s host=%s keepalive=%d \n", comd, tgtpath1, httpver, host, keepalive);
     // Choose what to perform based on comd
     if (strcmp(comd, "GET") == 0) {
@@ -87,14 +118,14 @@ void * thread(void * vargp) {
             fp = fopen(tgtpath1, "r");
             fseek(fp, 0, SEEK_SET);
             msgsz = fread(msg, MAXREAD, 1, fp);
-            sprintf(resp, "%s 200 Document Follows\r\nContent-Type:text/html\r\nContent-Length:%d\r\n\r\n%s", httpver, msgsz, msg);
+            sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, msgsz, msg);
             write(connfd, resp, strlen(resp));
             fclose(fp);
         } else {
             fp = fopen(tgtpath1, "r");
             fseek(fp, 0, SEEK_SET);
             msgsz = fread(msg, MAXREAD, 1, fp);
-            sprintf(resp, "%s 200 Document Follows\r\nContent-Type:text/html\r\nContent-Length:%d\r\n\r\n%s", httpver, msgsz, msg);
+            sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, msgsz, msg);
             write(connfd, resp, strlen(resp));
             fclose(fp);
         }
