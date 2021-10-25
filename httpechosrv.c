@@ -104,7 +104,6 @@ void * thread(void * vargp) {
     while(keepalive || first--) {
         printf("Waiting for data\n");
         n = read(connfd, buf, MAXLINE);
-        printf("%d\n", (int)n);
         if ((int)n >= 0) {
             comd = strtok_r(buf, " \t\r\n\v\f", &context);
             tgtpath = strtok_r(NULL, " \t\r\n\v\f", &context);
@@ -139,7 +138,10 @@ void * thread(void * vargp) {
                 // TODO: Need to return webpage with error
                 printf("ERROR in requested data type\n");
             } else if (strcmp(comd, "GET") == 0) {
-                fp = fopen(tgtpath1, "r");
+                if (contType[0] == 'i')
+                    fp = fopen(tgtpath1, "rb");
+                else
+                    fp = fopen(tgtpath1, "r");
                 fseek(fp, 0, SEEK_SET);
                 msgsz = fread(msg, MAXREAD, 1, fp);
                 sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, (int)strlen(msg), msg);
@@ -150,7 +152,10 @@ void * thread(void * vargp) {
             } else if (strcmp(comd, "POST") == 0) {
 
             } else if (strcmp(comd, "HEAD") == 0) {
-                fp = fopen(tgtpath1, "r");
+                if (contType[0] == 'i')
+                    fp = fopen(tgtpath1, "rb");
+                else
+                    fp = fopen(tgtpath1, "r");
                 fseek(fp, 0, SEEK_SET);
                 msgsz = fread(msg, MAXREAD, 1, fp);
                 sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n", httpver, contType, (int)strlen(msg));
