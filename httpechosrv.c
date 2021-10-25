@@ -137,16 +137,25 @@ void * thread(void * vargp) {
             if (contType == NULL) {
                 // TODO: Need to return webpage with error
                 printf("ERROR in requested data type\n");
+                sprintf(msg, "<html><head><title>500 Internal Server Error</title></head><body><h2>500 Internal Server Error</h2></body></html>");
+                sprintf(resp, "%s 500 Internal Server Error\r\nContent-Type:text/html\r\nContent-Length:%d\r\n\r\n%s", httpver, (int)strlen(msg), msg);
+                write(connfd, resp, strlen(resp));
             } else if (strcmp(comd, "GET") == 0) {
                 if (contType[0] != 't')
                     fp = fopen(tgtpath1, "rb");
                 else
                     fp = fopen(tgtpath1, "r");
-                fseek(fp, 0, SEEK_SET);
-                msgsz = fread(msg, MAXREAD, 1, fp);
-                sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, (int)strlen(msg), msg);
-                write(connfd, resp, strlen(resp));
-                fclose(fp);
+                if (fp != NULL) {
+                    fseek(fp, 0, SEEK_SET);
+                    msgsz = fread(msg, MAXREAD, 1, fp);
+                    sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, (int)strlen(msg), msg);
+                    write(connfd, resp, strlen(resp));
+                    fclose(fp);
+                } else {
+                    sprintf(msg, "<html><head><title>404 File Not Found</title></head><body><h2>404 File Not Found</h2></body></html>");
+                    sprintf(resp, "%s 404 File Not Found\r\nContent-Type:text/html\r\nContent-Length:%d\r\n\r\n%s", httpver, (int)strlen(msg), msg);
+                    write(connfd, resp, strlen(resp));
+                }
             } else if (strcmp(comd, "PUT") == 0) {
 
             } else if (strcmp(comd, "POST") == 0) {
@@ -156,13 +165,21 @@ void * thread(void * vargp) {
                     fp = fopen(tgtpath1, "rb");
                 else
                     fp = fopen(tgtpath1, "r");
-                fseek(fp, 0, SEEK_SET);
-                msgsz = fread(msg, MAXREAD, 1, fp);
-                sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n", httpver, contType, (int)strlen(msg));
-                write(connfd, resp, strlen(resp));
-                fclose(fp);
+                if (fp != NULL) {
+                    fseek(fp, 0, SEEK_SET);
+                    msgsz = fread(msg, MAXREAD, 1, fp);
+                    sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, (int)strlen(msg), msg);
+                    write(connfd, resp, strlen(resp));
+                    fclose(fp);
+                } else {
+                    sprintf(msg, "<html><head><title>404 File Not Found</title></head><body><h2>404 File Not Found</h2></body></html>");
+                    sprintf(resp, "%s 404 File Not Found\r\nContent-Type:text/html\r\nContent-Length:%d\r\n\r\n%s", httpver, (int)strlen(msg), msg);
+                    write(connfd, resp, strlen(resp));
+                }
             } else {
-                // TODO: Need to return webpage with error
+                sprintf(msg, "<html><head><title>500 Internal Server Error</title></head><body><h2>500 Internal Server Error</h2></body></html>");
+                sprintf(resp, "%s 500 Internal Server Error\r\nContent-Type:text/html\r\nContent-Length:%d\r\n\r\n%s", httpver, (int)strlen(msg), msg);
+                write(connfd, resp, strlen(resp));
             }
         } else {
             printf("No data received. Closing thread.\n");
