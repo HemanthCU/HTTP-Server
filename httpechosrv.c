@@ -18,15 +18,13 @@
 #define LISTENQ  1024  /* second argument to listen() */
 #define MAXREAD  20000
 
-int listenfd;
-
 int open_listenfd(int port);
 void echo(int connfd);
 void *thread(void *vargp);
 char* getContentType(char *tgtpath);
 
 int main(int argc, char **argv) {
-    int *connfdp, port, clientlen=sizeof(struct sockaddr_in);
+    int listenfd, *connfdp, port, clientlen=sizeof(struct sockaddr_in);
     struct sockaddr_in clientaddr;
     pthread_t tid; 
 
@@ -110,7 +108,10 @@ void * thread(void * vargp) {
         if ((int)n >= 0) {
             comd = strtok_r(buf, " \t\r\n\v\f", &context);
             tgtpath = strtok_r(NULL, " \t\r\n\v\f", &context);
-            sprintf(tgtpath1, "./www%s", tgtpath);
+            if (tgtpath[strlen(tgtpath) - 1] == '/')
+                sprintf(tgtpath1, "./www%sindex.html", tgtpath);
+            else
+                sprintf(tgtpath1, "./www%s", tgtpath);
             httpver = strtok_r(NULL, " \t\r\n\v\f", &context);
             host = strtok_r(NULL, " \t\r\n\v\f", &context);
             host = strtok_r(NULL, " \t\r\n\v\f", &context);
@@ -149,7 +150,12 @@ void * thread(void * vargp) {
             } else if (strcmp(comd, "POST") == 0) {
 
             } else if (strcmp(comd, "HEAD") == 0) {
-
+                fp = fopen(tgtpath1, "r");
+                fseek(fp, 0, SEEK_SET);
+                msgsz = fread(msg, MAXREAD, 1, fp);
+                sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n", httpver, contType, (int)strlen(msg));
+                write(connfd, resp, strlen(resp));
+                fclose(fp);
             } else {
                 // TODO: Need to return webpage with error
             }
