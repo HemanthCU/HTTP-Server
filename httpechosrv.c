@@ -18,12 +18,12 @@
 #define LISTENQ  1024  /* second argument to listen() */
 #define MAXREAD  20000
 
+int listenfd;
+
 int open_listenfd(int port);
 void echo(int connfd);
 void *thread(void *vargp);
 char* getContentType(char *tgtpath);
-
-int listenfd;
 
 int main(int argc, char **argv) {
     int *connfdp, port, clientlen=sizeof(struct sockaddr_in);
@@ -40,7 +40,8 @@ int main(int argc, char **argv) {
     while (1) {
         connfdp = malloc(sizeof(int));
         *connfdp = accept(listenfd, (struct sockaddr*)&clientaddr, &clientlen);
-        pthread_create(&tid, NULL, thread, connfdp);
+        if (*connfdp >= 0)
+            pthread_create(&tid, NULL, thread, connfdp);
     }
 }
 
@@ -80,7 +81,7 @@ char* getContentType(char *tgtpath) {
 }
 
 /* thread routine */
-void * thread(void * vargp) {  
+void * thread(void * vargp) {
     int connfd = *((int *)vargp);
     pthread_detach(pthread_self());
     free(vargp);
@@ -102,90 +103,63 @@ void * thread(void * vargp) {
     char *contType;
     char c;
     FILE *fp;
-    struct timeval tv;
     while(keepalive || first--) {
+        printf("Waiting for data\n");
         n = read(connfd, buf, MAXLINE);
-        comd = strtok_r(buf, " \t\r\n\v\f", &context);
-        tgtpath = strtok_r(NULL, " \t\r\n\v\f", &context);
-        sprintf(tgtpath1, "./www%s", tgtpath);
-        httpver = strtok_r(NULL, " \t\r\n\v\f", &context);
-        host = strtok_r(NULL, " \t\r\n\v\f", &context);
-        host = strtok_r(NULL, " \t\r\n\v\f", &context);
+        printf("%d\n", (int)n);
+        if ((int)n >= 0) {
+            comd = strtok_r(buf, " \t\r\n\v\f", &context);
+            tgtpath = strtok_r(NULL, " \t\r\n\v\f", &context);
+            sprintf(tgtpath1, "./www%s", tgtpath);
+            httpver = strtok_r(NULL, " \t\r\n\v\f", &context);
+            host = strtok_r(NULL, " \t\r\n\v\f", &context);
+            host = strtok_r(NULL, " \t\r\n\v\f", &context);
 
-        if (strcmp(httpver, "HTTP/1.1") == 0) {
-            c = context[1];
-            if (c != '\r') {
-                temp = strtok_r(NULL, " \t\r\n\v\f", &context);
-                temp = strtok_r(NULL, " \t\r\n\v\f", &context);
-                if (strcmp(temp, "Keep-alive") == 0) {
-                    tv.tv_sec = 10;
-                    tv.tv_usec = 0;
-                    keepalive = 1;
-                    setsockopt(listenfd, SOL_SOCKET, SO_RCVTIMEO,
-                            (struct timeval *)&tv,sizeof(struct timeval));
+            if (strcmp(httpver, "HTTP/1.1") == 0) {
+                c = context[1];
+                if (c != '\r') {
+                    temp = strtok_r(NULL, " \t\r\n\v\f", &context);
+                    temp = strtok_r(NULL, " \t\r\n\v\f", &context);
+                    if (strcmp(temp, "Keep-alive") == 0) {
+                        keepalive = 1;
+                    } else {
+                        keepalive = 0;
+                    }
                 } else {
-                    tv.tv_sec = 0;
-                    tv.tv_usec = 0;
                     keepalive = 0;
-                    setsockopt(listenfd, SOL_SOCKET, SO_RCVTIMEO,
-                            (struct timeval *)&tv,sizeof(struct timeval));
                 }
             } else {
-                tv.tv_sec = 0;
-                tv.tv_usec = 0;
                 keepalive = 0;
-                setsockopt(listenfd, SOL_SOCKET, SO_RCVTIMEO,
-                        (struct timeval *)&tv,sizeof(struct timeval));
+            }
+            contType = getContentType(tgtpath1);
+            printf("comd=%s tgtpath=%s httpver=%s host=%s keepalive=%d \n", comd, tgtpath1, httpver, host, keepalive);
+            // Choose what to perform based on comd
+            if (contType == NULL) {
+                // TODO: Need to return webpage with error
+                printf("ERROR in requested data type\n");
+            } else if (strcmp(comd, "GET") == 0) {
+                fp = fopen(tgtpath1, "r");
+                fseek(fp, 0, SEEK_SET);
+                msgsz = fread(msg, MAXREAD, 1, fp);
+                sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, (int)strlen(msg), msg);
+                write(connfd, resp, strlen(resp));
+                fclose(fp);
+            } else if (strcmp(comd, "PUT") == 0) {
+
+            } else if (strcmp(comd, "POST") == 0) {
+
+            } else if (strcmp(comd, "HEAD") == 0) {
+
+            } else {
+                // TODO: Need to return webpage with error
             }
         } else {
-            tv.tv_sec = 0;
-            tv.tv_usec = 0;
+            printf("No data received. Closing thread.\n");
             keepalive = 0;
-            setsockopt(listenfd, SOL_SOCKET, SO_RCVTIMEO,
-                    (struct timeval *)&tv,sizeof(struct timeval));
-        }
-        contType = getContentType(tgtpath1);
-        printf("comd=%s tgtpath=%s httpver=%s host=%s keepalive=%d \n", comd, tgtpath1, httpver, host, keepalive);
-        // Choose what to perform based on comd
-        if (contType == NULL) {
-            // TODO: Need to return webpage with error
-            printf("ERROR in requested data type\n");
-        } else if (strcmp(comd, "GET") == 0) {
-            fp = fopen(tgtpath1, "r");
-            fseek(fp, 0, SEEK_SET);
-            msgsz = fread(msg, MAXREAD, 1, fp);
-            sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, (int)strlen(msg), msg);
-            write(connfd, resp, strlen(resp));
-            fclose(fp);
-        } else if (strcmp(comd, "PUT") == 0) {
-
-        } else if (strcmp(comd, "POST") == 0) {
-
-        } else if (strcmp(comd, "HEAD") == 0) {
-
-        } else {
-            // TODO: Need to return webpage with error
         }
     }
-    //echo(connfd);
     close(connfd);
     return NULL;
-}
-
-/*
- * echo - read and echo text lines until client closes connection
- */
-void echo(int connfd) {
-    size_t n; 
-    char buf[MAXLINE]; 
-    char httpmsg[]="HTTP/1.1 200 Document Follows\r\nContent-Type:text/html\r\nContent-Length:32\r\n\r\n<html><h1>Hello CSCI4273 Course!</h1>"; 
-
-    n = read(connfd, buf, MAXLINE);
-    printf("server received the following request:\n%s\n",buf);
-    strcpy(buf,httpmsg);
-    printf("server returning a http message with the following content.\n%s\n",buf);
-    write(connfd, buf,strlen(httpmsg));
-    
 }
 
 /* 
@@ -202,7 +176,13 @@ int open_listenfd(int port) {
 
     /* Eliminates "Address already in use" error from bind. */
     if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, 
-                   (const void *)&optval , sizeof(int)) < 0)
+                    (const void *)&optval , sizeof(int)) < 0)
+        return -1;
+    struct timeval tv;
+    tv.tv_sec = 10;
+    tv.tv_usec = 0;
+    if (setsockopt(listenfd, SOL_SOCKET, SO_RCVTIMEO,
+                    (struct timeval *)&tv,sizeof(struct timeval)) < 0)
         return -1;
 
     /* listenfd will be an endpoint for all requests to port
