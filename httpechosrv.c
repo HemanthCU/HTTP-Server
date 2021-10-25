@@ -12,11 +12,12 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <sys/socket.h>
 
 #define MAXLINE  8192  /* max text line length */
 #define MAXBUF   8192  /* max I/O buffer size */
 #define LISTENQ  1024  /* second argument to listen() */
-#define MAXREAD  20000
+#define MAXREAD  80000
 
 int open_listenfd(int port);
 void echo(int connfd);
@@ -148,9 +149,10 @@ void * thread(void * vargp) {
                     fp = fopen(tgtpath1, "r");
                 if (fp != NULL) {
                     fseek(fp, 0, SEEK_SET);
-                    msgsz = fread(msg, MAXREAD, 1, fp);
-                    sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, (int)strlen(msg), msg);
+                    msgsz = fread(msg, 1, MAXREAD, fp);
+                    sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n", httpver, contType, msgsz);
                     write(connfd, resp, strlen(resp));
+                    write(connfd, msg, msgsz);
                     fclose(fp);
                 } else {
                     sprintf(msg, "<html><head><title>404 File Not Found</title></head><body><h2>404 File Not Found</h2></body></html>");
@@ -165,10 +167,11 @@ void * thread(void * vargp) {
                     fp = fopen(tgtpath1, "r");
                 if (fp != NULL) {
                     fseek(fp, 0, SEEK_SET);
-                    msgsz = fread(msg, MAXREAD, 1, fp);
-                    sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n<html><body><pre><h1>%s</h1></pre>%s",
-                            httpver, contType, (int)strlen(msg), postdata, msg);
+                    msgsz = fread(msg, 1, MAXREAD, fp);
+                    sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n<html><body><pre><h1>%s</h1></pre>",
+                            httpver, contType, msgsz, postdata);
                     write(connfd, resp, strlen(resp));
+                    write(connfd, msg, msgsz);
                     fclose(fp);
                 } else {
                     sprintf(msg, "<html><head><title>404 File Not Found</title></head><body><h2>404 File Not Found</h2></body></html>");
@@ -182,8 +185,8 @@ void * thread(void * vargp) {
                     fp = fopen(tgtpath1, "r");
                 if (fp != NULL) {
                     fseek(fp, 0, SEEK_SET);
-                    msgsz = fread(msg, MAXREAD, 1, fp);
-                    sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, (int)strlen(msg), msg);
+                    msgsz = fread(msg, 1, MAXREAD, fp);
+                    sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, msgsz, msg);
                     write(connfd, resp, strlen(resp));
                     fclose(fp);
                 } else {
