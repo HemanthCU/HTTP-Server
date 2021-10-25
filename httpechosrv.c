@@ -23,8 +23,10 @@ void echo(int connfd);
 void *thread(void *vargp);
 char* getContentType(char *tgtpath);
 
+int listenfd;
+
 int main(int argc, char **argv) {
-    int listenfd, *connfdp, port, clientlen=sizeof(struct sockaddr_in);
+    int *connfdp, port, clientlen=sizeof(struct sockaddr_in);
     struct sockaddr_in clientaddr;
     pthread_t tid; 
 
@@ -64,12 +66,13 @@ char* getContentType(char *tgtpath) {
         strcpy(temp4, "image/gif");
     } else if (strcmp(temp2, "jpg") == 0) {
         strcpy(temp4, "image/jpg");
+    } else if (strcmp(temp2, "ico") == 0) {
+        strcpy(temp4, "image/x-icon");
     } else if (strcmp(temp2, "css") == 0) {
         strcpy(temp4, "text/css");
     } else if (strcmp(temp2, "js") == 0) {
         strcpy(temp4, "application/javascript");
     } else {
-        printf("ERROR in file type\n");
         temp4 = NULL;
     }
 
@@ -84,6 +87,7 @@ void * thread(void * vargp) {
     // Process the header to get details of request
     size_t n;
     int keepalive = 0;
+    int first = 1;
     int msgsz;
     char buf[MAXLINE];
     char *resp = (char*) malloc (MAXREAD*sizeof(char));
@@ -98,55 +102,71 @@ void * thread(void * vargp) {
     char *contType;
     char c;
     FILE *fp;
-    n = read(connfd, buf, MAXLINE);
-    comd = strtok_r(buf, " \t\r\n\v\f", &context);
-    tgtpath = strtok_r(NULL, " \t\r\n\v\f", &context);
-    sprintf(tgtpath1, "./www%s", tgtpath);
-    httpver = strtok_r(NULL, " \t\r\n\v\f", &context);
-    host = strtok_r(NULL, " \t\r\n\v\f", &context);
-    host = strtok_r(NULL, " \t\r\n\v\f", &context);
+    struct timeval tv;
+    while(keepalive || first--) {
+        n = read(connfd, buf, MAXLINE);
+        comd = strtok_r(buf, " \t\r\n\v\f", &context);
+        tgtpath = strtok_r(NULL, " \t\r\n\v\f", &context);
+        sprintf(tgtpath1, "./www%s", tgtpath);
+        httpver = strtok_r(NULL, " \t\r\n\v\f", &context);
+        host = strtok_r(NULL, " \t\r\n\v\f", &context);
+        host = strtok_r(NULL, " \t\r\n\v\f", &context);
 
-    if (strcmp(httpver, "HTTP/1.1") == 0) {
-        c = context[1];
-        if (c != '\r') {
-            temp = strtok_r(NULL, " \t\r\n\v\f", &context);
-            temp = strtok_r(NULL, " \t\r\n\v\f", &context);
-            if (strcmp(temp, "Keep-alive") == 0)
-                keepalive = 1;
-        }
-    }
-    contType = getContentType(tgtpath1);
-    printf("comd=%s tgtpath=%s httpver=%s host=%s keepalive=%d \n", comd, tgtpath1, httpver, host, keepalive);
-    // Choose what to perform based on comd
-    if (contType == NULL) {
-        // TODO: Need to return webpage with error
-        printf("ERROR in requested data type\n");
-    } else if (strcmp(comd, "GET") == 0) {
-        if (keepalive) {
-            fp = fopen(tgtpath1, "r");
-            fseek(fp, 0, SEEK_SET);
-            msgsz = fread(msg, MAXREAD, 1, fp);
-            sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, (int)strlen(msg), msg);
-            write(connfd, resp, strlen(resp));
-            fclose(fp);
+        if (strcmp(httpver, "HTTP/1.1") == 0) {
+            c = context[1];
+            if (c != '\r') {
+                temp = strtok_r(NULL, " \t\r\n\v\f", &context);
+                temp = strtok_r(NULL, " \t\r\n\v\f", &context);
+                if (strcmp(temp, "Keep-alive") == 0) {
+                    tv.tv_sec = 10;
+                    tv.tv_usec = 0;
+                    keepalive = 1;
+                    setsockopt(listenfd, SOL_SOCKET, SO_RCVTIMEO,
+                            (struct timeval *)&tv,sizeof(struct timeval));
+                } else {
+                    tv.tv_sec = 0;
+                    tv.tv_usec = 0;
+                    keepalive = 0;
+                    setsockopt(listenfd, SOL_SOCKET, SO_RCVTIMEO,
+                            (struct timeval *)&tv,sizeof(struct timeval));
+                }
+            } else {
+                tv.tv_sec = 0;
+                tv.tv_usec = 0;
+                keepalive = 0;
+                setsockopt(listenfd, SOL_SOCKET, SO_RCVTIMEO,
+                        (struct timeval *)&tv,sizeof(struct timeval));
+            }
         } else {
+            tv.tv_sec = 0;
+            tv.tv_usec = 0;
+            keepalive = 0;
+            setsockopt(listenfd, SOL_SOCKET, SO_RCVTIMEO,
+                    (struct timeval *)&tv,sizeof(struct timeval));
+        }
+        contType = getContentType(tgtpath1);
+        printf("comd=%s tgtpath=%s httpver=%s host=%s keepalive=%d \n", comd, tgtpath1, httpver, host, keepalive);
+        // Choose what to perform based on comd
+        if (contType == NULL) {
+            // TODO: Need to return webpage with error
+            printf("ERROR in requested data type\n");
+        } else if (strcmp(comd, "GET") == 0) {
             fp = fopen(tgtpath1, "r");
             fseek(fp, 0, SEEK_SET);
             msgsz = fread(msg, MAXREAD, 1, fp);
             sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, (int)strlen(msg), msg);
             write(connfd, resp, strlen(resp));
             fclose(fp);
+        } else if (strcmp(comd, "PUT") == 0) {
+
+        } else if (strcmp(comd, "POST") == 0) {
+
+        } else if (strcmp(comd, "HEAD") == 0) {
+
+        } else {
+            // TODO: Need to return webpage with error
         }
-    } else if (strcmp(comd, "PUT") == 0) {
-
-    } else if (strcmp(comd, "POST") == 0) {
-
-    } else if (strcmp(comd, "HEAD") == 0) {
-
-    } else {
-        // TODO: Need to return webpage with error
     }
-
     //echo(connfd);
     close(connfd);
     return NULL;
