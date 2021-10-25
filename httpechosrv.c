@@ -90,7 +90,7 @@ void * thread(void * vargp) {
     int msgsz;
     char buf[MAXLINE];
     char *resp = (char*) malloc (MAXREAD*sizeof(char));
-    char msg[MAXREAD + 1];
+    unsigned char msg[MAXREAD + 1];
     char *context = NULL;
     char *comd;
     char *host;
@@ -138,12 +138,13 @@ void * thread(void * vargp) {
                 // TODO: Need to return webpage with error
                 printf("ERROR in requested data type\n");
             } else if (strcmp(comd, "GET") == 0) {
-                if (contType[0] == 'i')
+                if (contType[0] != 't')
                     fp = fopen(tgtpath1, "rb");
                 else
                     fp = fopen(tgtpath1, "r");
                 fseek(fp, 0, SEEK_SET);
                 msgsz = fread(msg, MAXREAD, 1, fp);
+                printf("%s\n", msg);
                 sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, (int)strlen(msg), msg);
                 write(connfd, resp, strlen(resp));
                 fclose(fp);
@@ -152,12 +153,13 @@ void * thread(void * vargp) {
             } else if (strcmp(comd, "POST") == 0) {
 
             } else if (strcmp(comd, "HEAD") == 0) {
-                if (contType[0] == 'i')
+                if (contType[0] != 't')
                     fp = fopen(tgtpath1, "rb");
                 else
                     fp = fopen(tgtpath1, "r");
                 fseek(fp, 0, SEEK_SET);
                 msgsz = fread(msg, MAXREAD, 1, fp);
+                printf("%s\n", msg);
                 sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n", httpver, contType, (int)strlen(msg));
                 write(connfd, resp, strlen(resp));
                 fclose(fp);
