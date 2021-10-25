@@ -149,8 +149,7 @@ void * thread(void * vargp) {
                 if (fp != NULL) {
                     fseek(fp, 0, SEEK_SET);
                     msgsz = fread(msg, MAXREAD, 1, fp);
-                    sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n", httpver, contType, (int)strlen(msg));
-                    memcpy(resp + strlen(resp), msg, strlen(msg));
+                    sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n%s", httpver, contType, (int)strlen(msg), msg);
                     write(connfd, resp, strlen(resp));
                     fclose(fp);
                 } else {
