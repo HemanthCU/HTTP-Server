@@ -99,6 +99,7 @@ void * thread(void * vargp) {
     char *tgtpath1 = (char*) malloc (100*sizeof(char));
     char *httpver;
     char *contType;
+    char *postdata;
     char c;
     FILE *fp;
     while(keepalive || first--) {
@@ -134,7 +135,7 @@ void * thread(void * vargp) {
             contType = getContentType(tgtpath1);
             printf("comd=%s tgtpath=%s httpver=%s host=%s keepalive=%d \n", comd, tgtpath1, httpver, host, keepalive);
             // Choose what to perform based on comd
-            if (contType == NULL) {
+            if (contType == NULL || (strcmp(comd, "POST") == 0 && strcmp(contType, "text/html") != 0)) {
                 // TODO: Need to return webpage with error
                 printf("ERROR in requested data type\n");
                 sprintf(msg, "<html><head><title>400 Bad Request</title></head><body><h2>400 Bad Request</h2></body></html>");
@@ -156,10 +157,24 @@ void * thread(void * vargp) {
                     sprintf(resp, "%s 404 File Not Found\r\nContent-Type:text/html\r\nContent-Length:%d\r\n\r\n%s", httpver, (int)strlen(msg), msg);
                     write(connfd, resp, strlen(resp));
                 }
-            } else if (strcmp(comd, "PUT") == 0) {
-
             } else if (strcmp(comd, "POST") == 0) {
-
+                postdata = strtok_r(NULL, " \t\r\n\v\f", &context);
+                if (contType[0] != 't')
+                    fp = fopen(tgtpath1, "rb");
+                else
+                    fp = fopen(tgtpath1, "r");
+                if (fp != NULL) {
+                    fseek(fp, 0, SEEK_SET);
+                    msgsz = fread(msg, MAXREAD, 1, fp);
+                    sprintf(resp, "%s 200 Document Follows\r\nContent-Type:%s\r\nContent-Length:%d\r\n\r\n<html><body><pre><h1>%s</h1></pre>%s",
+                            httpver, contType, (int)strlen(msg), postdata, msg);
+                    write(connfd, resp, strlen(resp));
+                    fclose(fp);
+                } else {
+                    sprintf(msg, "<html><head><title>404 File Not Found</title></head><body><h2>404 File Not Found</h2></body></html>");
+                    sprintf(resp, "%s 404 File Not Found\r\nContent-Type:text/html\r\nContent-Length:%d\r\n\r\n%s", httpver, (int)strlen(msg), msg);
+                    write(connfd, resp, strlen(resp));
+                }
             } else if (strcmp(comd, "HEAD") == 0) {
                 if (contType[0] != 't')
                     fp = fopen(tgtpath1, "rb");
