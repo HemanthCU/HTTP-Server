@@ -137,8 +137,8 @@ void * thread(void * vargp) {
             if (contType == NULL) {
                 // TODO: Need to return webpage with error
                 printf("ERROR in requested data type\n");
-                sprintf(msg, "<html><head><title>500 Internal Server Error</title></head><body><h2>500 Internal Server Error</h2></body></html>");
-                sprintf(resp, "%s 500 Internal Server Error\r\nContent-Type:text/html\r\nContent-Length:%d\r\n\r\n%s", httpver, (int)strlen(msg), msg);
+                sprintf(msg, "<html><head><title>400 Bad Request</title></head><body><h2>400 Bad Request</h2></body></html>");
+                sprintf(resp, "%s 400 Bad Request\r\nContent-Type:text/html\r\nContent-Length:%d\r\n\r\n%s", httpver, (int)strlen(msg), msg);
                 write(connfd, resp, strlen(resp));
             } else if (strcmp(comd, "GET") == 0) {
                 if (contType[0] != 't')
