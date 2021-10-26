@@ -107,10 +107,14 @@ void * thread(void * vargp) {
     char *postdata; /* Postdata to be appended to the request */
     char c;
     FILE *fp; /* File descriptor to open the file */
-    while (keepalive || first--) {
-        printf("Waiting for data\n");
+    while (keepalive || first) {
+        if (!first)
+            printf("Waiting for incoming request\n");
+        else
+            first = 0;
         n = read(connfd, buf, MAXLINE);
         if ((int)n >= 0) {
+            printf("Request received\n");
             comd = strtok_r(buf, " \t\r\n\v\f", &context);
             tgtpath = strtok_r(NULL, " \t\r\n\v\f", &context);
             // Default Page is handled here by looking for an index.html file at the given directory.
@@ -131,7 +135,11 @@ void * thread(void * vargp) {
                     temp = strtok_r(NULL, " \t\r\n\v\f", &context);
                     if (strcmp(temp, "Keep-alive") == 0) {
                         keepalive = 1;
+                    } else {
+                        keepalive = 0;
                     }
+                } else {
+                    keepalive = 1;
                 }
             }
             contType = getContentType(tgtpath1);
@@ -211,10 +219,11 @@ void * thread(void * vargp) {
                 write(connfd, resp, strlen(resp));
             }
         } else {
-            printf("No data received. Closing thread.\n");
+            printf("No data received.\n");
             keepalive = 0;
         }
     }
+    printf("Closing thread.\n");
     close(connfd);
     return NULL;
 }
