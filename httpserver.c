@@ -1,5 +1,5 @@
 /* 
- * tcpechosrv.c - A concurrent TCP echo server using threads
+ * httpserver.c - A server to handle different HTTP requests to load a website
  */
 
 #include <stdio.h>
@@ -131,14 +131,8 @@ void * thread(void * vargp) {
                     temp = strtok_r(NULL, " \t\r\n\v\f", &context);
                     if (strcmp(temp, "Keep-alive") == 0) {
                         keepalive = 1;
-                    } else {
-                        keepalive = 0;
                     }
-                } else {
-                    keepalive = 0;
                 }
-            } else {
-                keepalive = 0;
             }
             contType = getContentType(tgtpath1);
             //printf("comd=%s tgtpath=%s httpver=%s host=%s keepalive=%d \n", comd, tgtpath1, httpver, host, keepalive);
