@@ -95,7 +95,7 @@ void * thread(void * vargp) {
     int msgsz; /* Size of data read from the file */
     char buf[MAXLINE]; /* Request full message */
     char *resp = (char*) malloc (MAXREAD*sizeof(char)); /* Response header */
-    unsigned char msg[MAXREAD + 1]; /* Data read from the file */
+    unsigned char *msg = (char*) malloc (MAXREAD*sizeof(char)); /* Data read from the file */
     char *context = NULL; /* Pointer used for string tokenizer */
     char *comd; /* Incoming HTTP command */
     char *host; /* Incoming HTTP host */
