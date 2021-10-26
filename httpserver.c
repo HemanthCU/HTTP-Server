@@ -219,11 +219,11 @@ void * thread(void * vargp) {
                 write(connfd, resp, strlen(resp));
             }
         } else {
-            printf("No data received.\n");
+            printf("No data received\n");
             keepalive = 0;
         }
     }
-    printf("Closing thread.\n");
+    printf("Closing thread\n");
     close(connfd);
     return NULL;
 }
