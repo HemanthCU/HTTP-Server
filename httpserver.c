@@ -94,7 +94,7 @@ void * thread(void * vargp) {
     int first = 1; /* Denotes if this is the first execution of the while loop */
     int msgsz; /* Size of data read from the file */
     char buf[MAXLINE]; /* Request full message */
-    char *resp = (char*) malloc (MAXREAD*sizeof(char)); /* Response header */
+    char *resp = (char*) malloc (MAXBUF*sizeof(char)); /* Response header */
     unsigned char *msg = (char*) malloc (MAXREAD*sizeof(char)); /* Data read from the file */
     char *context = NULL; /* Pointer used for string tokenizer */
     char *comd; /* Incoming HTTP command */
