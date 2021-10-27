@@ -133,7 +133,7 @@ void * thread(void * vargp) {
                 if (c != '\r') {
                     temp = strtok_r(NULL, " \t\r\n\v\f", &context);
                     temp = strtok_r(NULL, " \t\r\n\v\f", &context);
-                    if (strcmp(temp, "Keep-alive") == 0) {
+                    if (strcmp(temp, "Keep-alive") == 0 || strcmp(temp, "keep-alive") == 0) {
                         keepalive = 1;
                     } else {
                         keepalive = 0;
