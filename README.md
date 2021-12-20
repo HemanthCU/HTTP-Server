@@ -1,8 +1,4 @@
-# Network Systems Programming Assignment 2
-
-Student Details:
-
-Hemanth Chenna - hech9374@colorado.edu
+# HTTP Server
 
 This is a program to run a HTTP server which responds to a HTTP requests from multiple clients concurrently on the socket provided as an argument when running the program.
 
